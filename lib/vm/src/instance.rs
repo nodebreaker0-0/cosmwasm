@@ -41,6 +41,17 @@ where
         let import_obj = imports! {
             || { setup_context::<S>() },
             "env" => {
+                // An import that allows the contract to emit debug logs that the host
+                // can either process or ignore. Takes a pointer argument of a memory
+                // region that must contain an UTF-8 encoded string. Ownership of the
+                // data is not transferred to the host (unlike in call_query_raw).
+                "log" => Func::new(move |ctx: &mut Ctx, message_ptr: u32| {
+                    let msg_data = read_region(ctx, message_ptr);
+                    match String::from_utf8(msg_data) {
+                        Ok(msg) => println!("{}", msg),
+                        Err(_) => println!("env.log() called with invalid UTF-8"),
+                    };
+                }),
                 "c_read" => func!(do_read::<S>),
                 "c_write" => func!(do_write::<S>),
                 "c_canonical_address" => Func::new(move |ctx: &mut Ctx, human_ptr: u32, canonical_ptr: u32| -> i32 {
